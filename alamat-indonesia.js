@@ -516,6 +516,60 @@
       return !box.hidden;
     });
   }
+  function importAddressHistoryRecord(label){
+    var text = safeTrim(label, 520);
+    if(!text) return null;
+    var match = /^Negara:\s*([^|]{2,96})\s*\|\s*Provinsi\/State\/Region:\s*([^|]{1,96})\s*\|\s*Kota\/Kabupaten\/City:\s*([^|]{1,96})\s*\|\s*Kecamatan\/District:\s*([^|]{1,96})\s*\|\s*Desa\/Kelurahan\/Village:\s*([^|]{1,96})\s*\|\s*Kode Pos:\s*([^|]{1,24})\s*\|\s*Detail:\s*(.{5,180})$/.exec(text);
+    if(!match) return null;
+    var countryLabel = safeTrim(match[1], 96);
+    var country = /^indonesia$/i.test(countryLabel) ? ID_COUNTRY : '';
+    if(!country) return null;
+    return normalizeAddressHistoryRecord({
+      v:1,
+      country:country,
+      region:safeTrim(match[2],96),
+      city:safeTrim(match[3],96),
+      district:safeTrim(match[4],96),
+      village:safeTrim(match[5],96),
+      postal:safeTrim(match[6],24),
+      detail:safeTrim(match[7],180),
+      label:text,
+      savedAt:Date.now()
+    });
+  }
+  function hydrateAddressHistoryLabels(firstLabel, secondLabel, thirdLabel){
+    if(!addressHistoryEmail()) return Promise.resolve(false);
+    return addressHistoryKey().then(function(key){
+      if(!key || !window.localStorage) return false;
+      var current = readAddressHistory(key);
+      if(current[0] || current[1] || current[2]){
+        renderAddressHistory();
+        return true;
+      }
+      var first = importAddressHistoryRecord(firstLabel);
+      var second = importAddressHistoryRecord(secondLabel);
+      var third = importAddressHistoryRecord(thirdLabel);
+      var firstSignature = addressHistorySignature(first);
+      var secondSignature = addressHistorySignature(second);
+      var thirdSignature = addressHistorySignature(third);
+      if(second && secondSignature === firstSignature) second = null;
+      secondSignature = addressHistorySignature(second);
+      if(third && (thirdSignature === firstSignature || thirdSignature === secondSignature)) third = null;
+      if(!first && second){ first = second; second = null; firstSignature = addressHistorySignature(first); }
+      if(!first && third){ first = third; third = null; firstSignature = addressHistorySignature(first); }
+      if(!second && third && addressHistorySignature(third) !== firstSignature){ second = third; third = null; }
+      if(!first) return false;
+      var imported = [first];
+      if(second) imported.push(second);
+      if(third) imported.push(third);
+      try{ window.localStorage.setItem(key, JSON.stringify(imported)); }catch(_){ return false; }
+      var status = byId('diracAddressHistoryStatus');
+      if(status) status.textContent = 'Alamat tersimpan dari riwayat pesanan akun ini siap digunakan.';
+      renderAddressHistory();
+      return true;
+    });
+  }
+
   function rememberCurrentAddress(){
     var record = currentAddressHistoryRecord();
     if(!record) return Promise.resolve(false);
@@ -660,8 +714,10 @@
     counts: DATA_COUNTS,
     version: DATA_VERSION,
     worldRegions: WORLD_REGIONS,
-    internationalValueValid: internationalValueValid
+    internationalValueValid: internationalValueValid,
+    hydrateHistoryLabels: hydrateAddressHistoryLabels
   };
+  try{ window.dispatchEvent(new Event('dirac-address-api-ready')); }catch(_){}
   if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind, {once:true}); else bind();
   window.addEventListener('load', bind);
   window.addEventListener('pageshow', bind);
