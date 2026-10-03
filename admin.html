@@ -2658,12 +2658,12 @@ html:is([data-motion="reduced"],[data-motion="none"],[data-motion="hemat"]) body
 
 </section>
 <section id="adminVerify" class="admin-panel" data-admin-panel="verify" hidden>
-<div class="admin-panel-head"><div><h3>Verifikasi dokumen</h3><p>Unggah berkas asli atau foto/scan. Sistem memeriksa bukti penerbitan yang sudah tersimpan tanpa mengubah dokumen.</p></div></div>
+<div class="admin-panel-head"><div><h3>Verifikasi dokumen</h3><p>Untuk membuktikan keaslian, unggah PNG/PDF asli. Foto/scan dan Verification ID dapat membantu mengenali penerbitan, tetapi tidak boleh sendiri dianggap bukti keutuhan dokumen.</p></div></div>
 <section id="adminDocumentVerificationV464" class="admin-document-verification" aria-labelledby="adminDocumentVerificationTitle">
 <div class="admin-verify-guide-v465"><div><strong>1 · Unggah</strong><p>Berkas asli dibandingkan dengan SHA-256 penerbitan. Byte berkas tidak dikirim untuk pemeriksaan hash.</p></div><div><strong>2 · Foto / scan</strong><p>QR bertanda bukti kriptografis dibaca otomatis bila perangkat mendukungnya. QR tetap dapat disalin dan tidak pernah menjadi bukti keutuhan file.</p></div><div><strong>3 · Hasil</strong><p>Hanya hash berkas resmi yang cocok boleh berstatus “berkas asli terverifikasi”. QR atau Verification ID saja tidak pernah membuat dokumen dianggap asli.</p></div></div>
 <label id="adminDocumentDropV465" class="admin-document-drop-v465"><span>Unggah atau jatuhkan foto / berkas di sini</span><small>Maksimal 32 MB. PNG/PDF asli dapat diverifikasi byte demi byte. Foto atau scan akan dicoba membaca Verification ID secara lokal bila browser mendukung pembacaan QR.</small><input id="adminDocumentVerifyFile" type="file"></label>
 <div id="adminDocumentVerifyMetaV465" class="admin-document-verify-meta-v465" role="status" aria-live="polite">Belum ada berkas dipilih.</div>
-<form id="adminDocumentVerifyForm" class="admin-document-grid" autocomplete="off"><label class="admin-field">Verification ID<input id="adminDocumentVerifyId" type="text" maxlength="51" placeholder="DV-…" spellcheck="false" autocapitalize="off"></label><button class="btn-secondary" type="submit">Periksa ID</button></form>
+<form id="adminDocumentVerifyForm" class="admin-document-grid" autocomplete="off"><label class="admin-field">Verification ID · cek registrasi saja<input id="adminDocumentVerifyId" type="text" maxlength="51" placeholder="DV-…" spellcheck="false" autocapitalize="off"><small class="admin-muted">ID hanya mengecek apakah nomor pernah diterbitkan. Status dokumen resmi tetap memerlukan bukti QR kriptografis dan/atau kecocokan hash berkas asli.</small></label><button class="btn-secondary" type="submit">Cek registrasi ID</button></form>
 <div id="adminDocumentVerifyResult" role="status" aria-live="polite"></div>
 </section>
 </section>
