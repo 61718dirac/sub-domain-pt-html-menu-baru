@@ -449,10 +449,12 @@
     var postal = safeTrim(item.postal, 24);
     var detail = safeTrim(item.detail, 180);
     var label = safeTrim(item.label, 420);
+    var phone = safeTrim(item.phone, 20);
+    if(phone && !/^\+?[0-9]{9,20}$/.test(phone)) return null;
     if(!/^[A-Z]{2}$/.test(country) || !region || !city || !district || !village || !postal || !detail || !label) return null;
     if(hasPayload(region) || hasPayload(city) || hasPayload(district) || hasPayload(village) || hasPayload(postal) || hasPayload(detail)) return null;
     if(cleanDetail(detail) !== detail || detail.length < 5 || !INTL_TEXT_RE.test(detail)) return null;
-    return {v:1,country:country,region:region,city:city,district:district,village:village,postal:postal,detail:detail,label:label,savedAt:Number(item.savedAt || 0)};
+    return {v:1,country:country,region:region,city:city,district:district,village:village,postal:postal,detail:detail,label:label,phone:phone,savedAt:Number(item.savedAt || 0)};
   }
   function readAddressHistory(key){
     if(!key || !window.localStorage) return [null,null,null];
@@ -464,11 +466,13 @@
   }
   function addressHistorySignature(item){
     if(!item) return '';
-    return [item.country,item.region,item.city,item.district,item.village,item.postal,item.detail].join('\u001f');
+    return [item.country,item.region,item.city,item.district,item.village,item.postal,item.detail,item.phone || ''].join('\u001f');
   }
   function currentAddressHistoryRecord(){
     var detail = byId('buyerAddressDetail');
-    if(!addressHistoryEmail() || !detail || !validDetail(detail.value)) return null;
+    var phoneField = byId('buyerPhone');
+    var phone = safeTrim(phoneField && phoneField.value, 20);
+    if(!addressHistoryEmail() || !detail || !validDetail(detail.value) || !/^\+?[0-9]{9,20}$/.test(phone)) return null;
     var country = selectedValue('buyerCountry');
     var region = selectedValue('buyerRegion');
     var city = selectedValue('buyerCity');
@@ -483,7 +487,7 @@
     }
     var label = compose();
     if(!label) return null;
-    return {v:1,country:country,region:region,city:city,district:district,village:village,postal:postal,detail:safeTrim(detail.value,180),label:safeTrim(label,420),savedAt:Date.now()};
+    return {v:1,country:country,region:region,city:city,district:district,village:village,postal:postal,detail:safeTrim(detail.value,180),label:safeTrim(label,420),phone:phone,savedAt:Date.now()};
   }
   function setAddressHistoryButton(button, item, slot){
     if(!button) return;
@@ -503,6 +507,12 @@
     button.appendChild(title);
     button.appendChild(detail);
     button.appendChild(location);
+    if(item.phone){
+      var savedPhone = document.createElement('span');
+      savedPhone.className = 'dirac-address-history-location';
+      savedPhone.textContent = 'WhatsApp: ' + item.phone;
+      button.appendChild(savedPhone);
+    }
   }
   function renderAddressHistory(){
     var box = byId('diracAddressHistoryBox');
@@ -632,6 +642,13 @@
       if(!restoreInternationalHistoryValue('buyerPostalCode', record.postal)) return false;
     }
     detail.value = record.detail;
+    if(record.phone){
+      var phoneField = byId('buyerPhone');
+      if(phoneField){
+        phoneField.value = record.phone;
+        phoneField.dispatchEvent(new Event('input',{bubbles:true}));
+      }
+    }
     compose();
     var status = byId('diracAddressHistoryStatus');
     if(status) status.textContent = 'Alamat tersimpan dipilih. Periksa kembali sebelum membuat pesanan.';
