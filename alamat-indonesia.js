@@ -592,11 +592,14 @@
     });
   }
 
+  var addressHistorySaveRequest = 0;
   function rememberCurrentAddress(){
+    var request = ++addressHistorySaveRequest;
+    var email = addressHistoryEmail();
     var record = currentAddressHistoryRecord();
     if(!record) return Promise.resolve(false);
     return addressHistoryKey().then(function(key){
-      if(!key || !window.localStorage) return false;
+      if(request !== addressHistorySaveRequest || email !== addressHistoryEmail() || !key || !window.localStorage) return false;
       var items = readAddressHistory(key);
       var signature = addressHistorySignature(record);
       var next = [record];
@@ -697,6 +700,17 @@
     }
     if(checkout) checkout.addEventListener('click', renderAddressHistory, false);
     if(send) send.addEventListener('click', rememberCurrentAddress, false);
+    var checkoutModal = byId('checkoutModal');
+    if(checkoutModal){
+      checkoutModal.addEventListener('change', function(event){
+        var target = event && event.target;
+        if(target && /^(buyerPhone|buyerCountry|buyerRegion|buyerCity|buyerDistrict|buyerVillage|buyerPostalCode|buyerAddressDetail)$/.test(target.id || '')) rememberCurrentAddress();
+      }, false);
+      checkoutModal.addEventListener('focusout', function(event){
+        var target = event && event.target;
+        if(target && /^(buyerPhone|buyerAddressDetail)$/.test(target.id || '')) rememberCurrentAddress();
+      }, false);
+    }
     renderAddressHistory();
   }
   function bind(){
