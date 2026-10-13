@@ -425,6 +425,8 @@
     });
   }
   var ADDRESS_HISTORY_PREFIX = 'dirac_address_history_v1_';
+  var addressHistoryMemory = Object.create(null);
+  try{Object.keys(window.localStorage).forEach(function(key){if(key.indexOf(ADDRESS_HISTORY_PREFIX) === 0) window.localStorage.removeItem(key);});}catch(_){}
   function addressHistoryEmail(){
     var email = byId('buyerEmail');
     var value = safeTrim(email && email.value, 120).toLowerCase();
@@ -469,9 +471,9 @@
     return {v:1,country:country,region:region,city:city,district:district,village:village,postal:postal,detail:detail,label:label,phone:phone,savedAt:Number(item.savedAt || 0)};
   }
   function readAddressHistory(key){
-    if(!key || !window.localStorage) return [null,null,null];
+    if(!key) return [null,null,null];
     try{
-      var parsed = JSON.parse(window.localStorage.getItem(key) || '[]');
+      var parsed = JSON.parse(addressHistoryMemory[key] || '[]');
       if(!Array.isArray(parsed)) return [null,null,null];
       return [normalizeAddressHistoryRecord(parsed[0]), normalizeAddressHistoryRecord(parsed[1]), normalizeAddressHistoryRecord(parsed[2])];
     }catch(_){ return [null,null,null]; }
@@ -562,7 +564,7 @@
   function hydrateAddressHistoryLabels(firstLabel, secondLabel, thirdLabel){
     if(!addressHistoryEmail()) return Promise.resolve(false);
     return addressHistoryKey().then(function(key){
-      if(!key || !window.localStorage) return false;
+      if(!key) return false;
       var current = readAddressHistory(key);
       if(current[0] || current[1] || current[2]){
         renderAddressHistory();
@@ -584,7 +586,7 @@
       var imported = [first];
       if(second) imported.push(second);
       if(third) imported.push(third);
-      try{ window.localStorage.setItem(key, JSON.stringify(imported)); }catch(_){ return false; }
+      try{ addressHistoryMemory[key] = JSON.stringify(imported); }catch(_){ return false; }
       var status = byId('diracAddressHistoryStatus');
       if(status) status.textContent = 'Alamat tersimpan dari riwayat pesanan akun ini siap digunakan.';
       renderAddressHistory();
@@ -599,16 +601,16 @@
     var record = currentAddressHistoryRecord();
     if(!record) return Promise.resolve(false);
     return addressHistoryKey().then(function(key){
-      if(request !== addressHistorySaveRequest || email !== addressHistoryEmail() || !key || !window.localStorage) return false;
+      if(request !== addressHistorySaveRequest || email !== addressHistoryEmail() || !key) return false;
       var items = readAddressHistory(key);
       var signature = addressHistorySignature(record);
       var next = [record];
       if(items[0] && addressHistorySignature(items[0]) !== signature) next.push(items[0]);
       if(next.length < 3 && items[1] && addressHistorySignature(items[1]) !== signature) next.push(items[1]);
       if(next.length < 3 && items[2] && addressHistorySignature(items[2]) !== signature) next.push(items[2]);
-      try{ window.localStorage.setItem(key, JSON.stringify(next)); }catch(_){ return false; }
+      try{ addressHistoryMemory[key] = JSON.stringify(next); }catch(_){ return false; }
       var status = byId('diracAddressHistoryStatus');
-      if(status) status.textContent = 'Alamat terbaru tersimpan untuk akun ini di perangkat ini.';
+      if(status) status.textContent = 'Alamat terbaru tersedia untuk akun ini selama halaman terbuka.';
       renderAddressHistory();
       return true;
     });
