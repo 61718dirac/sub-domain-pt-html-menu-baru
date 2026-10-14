@@ -426,7 +426,7 @@
   }
   var ADDRESS_HISTORY_PREFIX = 'dirac_address_history_v1_';
   var addressHistoryMemory = Object.create(null);
-  try{Object.keys(window.localStorage).forEach(function(key){if(key.indexOf(ADDRESS_HISTORY_PREFIX) === 0) window.localStorage.removeItem(key);});}catch(_){}
+  try{Object.keys(window.localStorage).forEach(function(key){if(key.indexOf(ADDRESS_HISTORY_PREFIX) === 0 && key.indexOf(ADDRESS_HISTORY_PREFIX + 'v2_') !== 0) window.localStorage.removeItem(key);});}catch(_){}
   function addressHistoryEmail(){
     var email = byId('buyerEmail');
     var value = safeTrim(email && email.value, 120).toLowerCase();
@@ -435,6 +435,8 @@
   }
   function addressHistoryKey(){
     var email = addressHistoryEmail();
+    var protection = addressHistoryProtection;
+    if(protection && protection.email === email) return protection.ready.then(function(ready){ return ready && protection === addressHistoryProtection && email === addressHistoryEmail() ? ADDRESS_HISTORY_PREFIX + 'v2_' + protection.id : ''; });
     if(!email || !window.crypto || !window.crypto.subtle || typeof window.TextEncoder !== 'function' || typeof window.btoa !== 'function') return Promise.resolve('');
     return window.crypto.subtle.digest('SHA-256', new window.TextEncoder().encode(email)).then(function(buffer){
       var raw = String.fromCharCode.apply(null, new Uint8Array(buffer));
@@ -444,6 +446,92 @@
   function uniqueAddressHistoryItem(list, value){
     var matches = (list || []).filter(function(row){ return String(row[0]) === value || safeTrim(row[1], 96) === value; });
     return matches.length === 1 ? matches[0] : null;
+  }
+  var addressHistoryProtection = null;
+  var addressHistoryProtectionGeneration = 0;
+  function historyBytes(value, maximum){
+    if(typeof value !== 'string' || value.length > maximum || !/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(value)) throw new Error('ADDRESS_HISTORY_INVALID');
+    var decoded = window.atob(value);
+    if(window.btoa(decoded) !== value) throw new Error('ADDRESS_HISTORY_INVALID');
+    return Uint8Array.from(decoded, function(character){ return character.charCodeAt(0); });
+  }
+  function historyBase64(bytes){
+    return window.btoa(String.fromCharCode.apply(null, new Uint8Array(bytes)));
+  }
+  function historyContext(protection){
+    return new window.TextEncoder().encode('dirac-address-history-cache-v2:' + window.location.origin + ':' + protection.id);
+  }
+  function historyProtectionCurrent(protection){
+    return protection === addressHistoryProtection && protection.generation === addressHistoryProtectionGeneration && protection.email === addressHistoryEmail();
+  }
+  function configureHistoryProtection(value, verifiedEmail){
+    var email = safeTrim(verifiedEmail, 120).toLowerCase();
+    if(!email || email !== addressHistoryEmail() || !value || typeof value !== 'object' || Array.isArray(value)
+        || value.v !== 2 || !/^[a-f0-9]{64}$/.test(value.id || '') || typeof value.key !== 'string' || !/^[a-f0-9]{64}$/.test(value.key)
+        || !window.crypto || !window.crypto.subtle || typeof window.TextEncoder !== 'function' || typeof window.TextDecoder !== 'function'){
+      addressHistoryProtection = null;
+      addressHistoryProtectionGeneration += 1;
+      return Promise.resolve(false);
+    }
+    if(addressHistoryProtection && addressHistoryProtection.email === email && addressHistoryProtection.id === value.id) return addressHistoryProtection.ready;
+    var protection = {email:email,id:value.id,generation:++addressHistoryProtectionGeneration,cryptoKey:null,ready:null};
+    addressHistoryProtection = protection;
+    var rawKey;
+    try{ rawKey = Uint8Array.from(value.key.match(/../g), function(pair){ return parseInt(pair,16); }); if(rawKey.length !== 32) throw new Error('ADDRESS_HISTORY_INVALID'); }
+    catch(_){ if(rawKey) rawKey.fill(0); addressHistoryProtection = null; return Promise.resolve(false); }
+    var imported = window.crypto.subtle.importKey('raw', rawKey, {name:'AES-GCM'}, false, ['encrypt','decrypt']);
+    rawKey.fill(0);
+    protection.ready = imported.then(function(cryptoKey){
+      if(!historyProtectionCurrent(protection)) return false;
+      protection.cryptoKey = cryptoKey;
+      var key = ADDRESS_HISTORY_PREFIX + 'v2_' + protection.id, stored = '';
+      try{ stored = window.localStorage.getItem(key) || ''; }catch(_){ return true; }
+      if(!stored) return true;
+      var envelope, nonce, data;
+      try{
+        if(stored.length > 65536) throw new Error('ADDRESS_HISTORY_INVALID');
+        envelope = JSON.parse(stored);
+        if(!envelope || typeof envelope !== 'object' || Array.isArray(envelope) || Object.keys(envelope).sort().join(',') !== 'data,id,nonce,v'
+            || envelope.v !== 2 || envelope.id !== protection.id) throw new Error('ADDRESS_HISTORY_INVALID');
+        nonce = historyBytes(envelope.nonce, 16); data = historyBytes(envelope.data, 44000);
+        if(nonce.length !== 12 || data.length < 17 || data.length > 32784) throw new Error('ADDRESS_HISTORY_INVALID');
+      }catch(_){ try{ if(historyProtectionCurrent(protection) && window.localStorage.getItem(key) === stored) window.localStorage.removeItem(key); }catch(_){} return true; }
+      return window.crypto.subtle.decrypt({name:'AES-GCM',iv:nonce,additionalData:historyContext(protection),tagLength:128}, cryptoKey, data).then(function(buffer){
+        var plain = new Uint8Array(buffer);
+        try{
+          if(!historyProtectionCurrent(protection) || plain.length > 32768) return false;
+          var payload = JSON.parse(new window.TextDecoder('utf-8',{fatal:true}).decode(plain));
+          if(!payload || typeof payload !== 'object' || Object.keys(payload).sort().join(',') !== 'email,items'
+              || payload.email !== email || !Array.isArray(payload.items) || !payload.items.length || payload.items.length > 3) throw new Error('ADDRESS_HISTORY_INVALID');
+          var first = normalizeAddressHistoryRecord(payload.items[0]), second = payload.items.length > 1 ? normalizeAddressHistoryRecord(payload.items[1]) : null,
+              third = payload.items.length > 2 ? normalizeAddressHistoryRecord(payload.items[2]) : null;
+          if(!first || (payload.items.length > 1 && !second) || (payload.items.length > 2 && !third)) throw new Error('ADDRESS_HISTORY_INVALID');
+          var records = [first]; if(second) records.push(second); if(third) records.push(third);
+          addressHistoryMemory[key] = JSON.stringify(records);
+          return true;
+        }finally{ plain.fill(0); }
+      }).catch(function(){
+        try{ if(historyProtectionCurrent(protection) && window.localStorage.getItem(key) === stored) window.localStorage.removeItem(key); }catch(_){}
+        return historyProtectionCurrent(protection);
+      }).finally(function(){ nonce.fill(0); data.fill(0); });
+    }).catch(function(){ return false; });
+    return protection.ready.then(function(ready){ if(ready && historyProtectionCurrent(protection)) renderAddressHistory(); return ready; });
+  }
+  function persistAddressHistory(key, records, email, request){
+    var protection = addressHistoryProtection;
+    if(!protection || !protection.cryptoKey || !historyProtectionCurrent(protection)
+        || protection.email !== email || key !== ADDRESS_HISTORY_PREFIX + 'v2_' + protection.id) return Promise.resolve(false);
+    var snapshot = JSON.stringify(records), plain, nonce;
+    try{
+      plain = new window.TextEncoder().encode(JSON.stringify({email:email,items:records}));
+      if(plain.length > 32768) throw new Error('ADDRESS_HISTORY_INVALID');
+      nonce = window.crypto.getRandomValues(new Uint8Array(12));
+    }catch(_){ if(plain) plain.fill(0); return Promise.resolve(false); }
+    return window.crypto.subtle.encrypt({name:'AES-GCM',iv:nonce,additionalData:historyContext(protection),tagLength:128}, protection.cryptoKey, plain).then(function(buffer){
+      if(!historyProtectionCurrent(protection) || request !== addressHistorySaveRequest || email !== addressHistoryEmail() || addressHistoryMemory[key] !== snapshot) return false;
+      window.localStorage.setItem(key, JSON.stringify({v:2,id:protection.id,nonce:historyBase64(nonce),data:historyBase64(buffer)}));
+      return true;
+    }).catch(function(){ return false; }).finally(function(){ plain.fill(0); nonce.fill(0); });
   }
   function normalizeAddressHistoryRecord(item){
     if(!item || typeof item !== 'object' || Number(item.v) !== 1) return null;
@@ -541,7 +629,9 @@
     });
   }
   function importAddressHistoryRecord(label){
-    var text = safeTrim(label, 520);
+    var entry = label && typeof label === 'object' && !Array.isArray(label) ? label : null;
+    var text = safeTrim(entry ? entry.address : label, 520);
+    var phone = safeTrim(entry && entry.phone || '', 20);
     if(!text) return null;
     var match = /^Negara:\s*([^|]{2,96})\s*\|\s*Provinsi\/State\/Region:\s*([^|]{1,96})\s*\|\s*Kota\/Kabupaten\/City:\s*([^|]{1,96})\s*\|\s*Kecamatan\/District:\s*([^|]{1,96})\s*\|\s*Desa\/Kelurahan\/Village:\s*([^|]{1,96})\s*\|\s*Kode Pos:\s*([^|]{1,24})\s*\|\s*Detail:\s*(.{5,180})$/.exec(text);
     if(!match) return null;
@@ -558,6 +648,7 @@
       postal:safeTrim(match[6],24),
       detail:safeTrim(match[7],180),
       label:text,
+      phone:phone,
       savedAt:Date.now()
     });
   }
@@ -610,9 +701,12 @@
       if(next.length < 3 && items[2] && addressHistorySignature(items[2]) !== signature) next.push(items[2]);
       try{ addressHistoryMemory[key] = JSON.stringify(next); }catch(_){ return false; }
       var status = byId('diracAddressHistoryStatus');
-      if(status) status.textContent = 'Alamat terbaru tersedia untuk akun ini selama halaman terbuka.';
-      renderAddressHistory();
-      return true;
+      return persistAddressHistory(key, next, email, request).then(function(saved){
+        if(request !== addressHistorySaveRequest || email !== addressHistoryEmail()) return false;
+        if(status) status.textContent = saved ? 'Alamat dan WhatsApp tersimpan terenkripsi untuk akun ini.' : 'Alamat tersedia selama halaman terbuka. Penyimpanan terenkripsi belum tersedia.';
+        renderAddressHistory();
+        return true;
+      });
     });
   }
   function restoreInternationalHistoryValue(selectId, value){
@@ -760,6 +854,7 @@
     version: DATA_VERSION,
     worldRegions: WORLD_REGIONS,
     internationalValueValid: internationalValueValid,
+    configureHistoryProtection: configureHistoryProtection,
     hydrateHistoryLabels: hydrateAddressHistoryLabels
   };
   try{ window.dispatchEvent(new Event('dirac-address-api-ready')); }catch(_){}
