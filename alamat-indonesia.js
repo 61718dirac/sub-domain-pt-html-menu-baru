@@ -480,7 +480,7 @@
   }
   function addressHistorySignature(item){
     if(!item) return '';
-    return [item.country,item.region,item.city,item.district,item.village,item.postal,item.detail,item.phone || ''].join('\u001f');
+    return [item.country,item.region,item.city,item.district,item.village,item.postal,item.detail].join('\u001f');
   }
   function currentAddressHistoryRecord(){
     var detail = byId('buyerAddressDetail');
@@ -540,7 +540,7 @@
       return !box.hidden;
     });
   }
-  function importAddressHistoryRecord(label){
+  function importAddressHistoryRecord(label, phone){
     var text = safeTrim(label, 520);
     if(!text) return null;
     var match = /^Negara:\s*([^|]{2,96})\s*\|\s*Provinsi(?:\/(?:State|Province)(?:\/Region)?)?:\s*([^|]{1,96})\s*\|\s*(?:Kota|Kabupaten)(?:\/(?:Kabupaten|Kota|City)){0,2}:\s*([^|]{1,96})\s*\|\s*Kecamatan(?:\/(?:District|Kota|Subdistrict)){0,2}:\s*([^|]{1,96})\s*\|\s*(?:Desa|Kelurahan)(?:\/(?:Kelurahan|Desa|Village)){0,2}:\s*([^|]{1,96})\s*\|\s*Kode Pos:\s*([^|]{1,24})\s*\|\s*Detail:\s*(.{5,180})$/.exec(text);
@@ -558,10 +558,11 @@
       postal:safeTrim(match[6],24),
       detail:safeTrim(match[7],180),
       label:text,
+      phone:safeTrim(phone,20),
       savedAt:Date.now()
     });
   }
-  function hydrateAddressHistoryLabels(firstLabel, secondLabel, thirdLabel){
+  function hydrateAddressHistoryLabels(firstLabel, secondLabel, thirdLabel, phones){
     if(!addressHistoryEmail()) return Promise.resolve(false);
     return addressHistoryKey().then(function(key){
       if(!key) return false;
@@ -570,9 +571,10 @@
         renderAddressHistory();
         return true;
       }
-      var first = importAddressHistoryRecord(firstLabel);
-      var second = importAddressHistoryRecord(secondLabel);
-      var third = importAddressHistoryRecord(thirdLabel);
+      var verifiedPhones = Array.isArray(phones) ? phones : [];
+      var first = importAddressHistoryRecord(firstLabel, verifiedPhones[0]);
+      var second = importAddressHistoryRecord(secondLabel, verifiedPhones[1]);
+      var third = importAddressHistoryRecord(thirdLabel, verifiedPhones[2]);
       var firstSignature = addressHistorySignature(first);
       var secondSignature = addressHistorySignature(second);
       var thirdSignature = addressHistorySignature(third);
@@ -659,12 +661,10 @@
       if(!restoreInternationalHistoryValue('buyerPostalCode', record.postal)) return false;
     }
     detail.value = record.detail;
-    if(record.phone){
-      var phoneField = byId('buyerPhone');
-      if(phoneField){
-        phoneField.value = record.phone;
-        phoneField.dispatchEvent(new Event('input',{bubbles:true}));
-      }
+    var phoneField = byId('buyerPhone');
+    if(phoneField){
+      phoneField.value = record.phone || '';
+      phoneField.dispatchEvent(new Event('input',{bubbles:true}));
     }
     compose();
     var status = byId('diracAddressHistoryStatus');
