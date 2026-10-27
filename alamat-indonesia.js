@@ -392,6 +392,13 @@
     });
     return !!(valid && allowedPostal && /^\d{5}$/.test(postal));
   }
+  function checkoutTransport(){
+    var address = compose();
+    if(!isIndonesia()) return address;
+    if(!validateSelectedCodes()) return '';
+    var detail = byId('buyerAddressDetail');
+    return 'ID-WILAYAH-1:' + [selectedValue('buyerRegion'),selectedValue('buyerCity'),selectedValue('buyerDistrict'),selectedValue('buyerVillage'),selectedValue('buyerPostalCode')].join('/') + '|' + String(detail && detail.value || '');
+  }
   function compose(){
     var detail = byId('buyerAddressDetail');
     if(detail){
@@ -747,6 +754,7 @@
   }
   window.DiracGlobalAddressSelects = {
     compose: compose,
+    checkoutTransport: checkoutTransport,
     validDetail: validDetail,
     hasPayload: hasPayload,
     cleanDetail: cleanDetail,
