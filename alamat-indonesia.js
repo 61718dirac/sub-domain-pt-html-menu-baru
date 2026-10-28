@@ -465,7 +465,6 @@
     var phone = safeTrim(item.phone, 20);
     if(phone && !/^\+?[0-9]{9,20}$/.test(phone)) return null;
     if(!/^[A-Z]{2}$/.test(country) || !region || !city || !district || !village || !postal || !detail || !label) return null;
-    if(hasPayload(region) || hasPayload(city) || hasPayload(district) || hasPayload(village) || hasPayload(postal) || hasPayload(detail)) return null;
     if(cleanDetail(detail) !== detail || detail.length < 5 || !INTL_TEXT_RE.test(detail)) return null;
     if(country === ID_COUNTRY){
       var regionItem = uniqueAddressHistoryItem(ID_ADDRESS.p, region);
@@ -475,6 +474,7 @@
       if(!regionItem || !cityItem || !districtItem || !villageItem) return null;
       region = String(regionItem[0]); city = String(cityItem[0]); district = String(districtItem[0]); village = String(villageItem[0]);
     }
+    if(hasPayload(region) || hasPayload(city) || hasPayload(district) || hasPayload(village) || hasPayload(postal) || hasPayload(detail)) return null;
     return {v:1,country:country,region:region,city:city,district:district,village:village,postal:postal,detail:detail,label:label,phone:phone,savedAt:Number(item.savedAt || 0)};
   }
   function readAddressHistory(key){
