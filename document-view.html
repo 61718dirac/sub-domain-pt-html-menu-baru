@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; font-src 'self'; style-src 'sha512-Oz25wJfJbOw86QRGYRFaErjxHJz8BG7cfiiiZ2THWDGOn0n/Z2lJMB/suVBdTo0Sne/wPlxFdvWRoC2TrHcNtQ=='; script-src 'self' 'sha512-OBR++1Sde7V7kpTXcwaTGAS1i+r2gm0NsuclpIhSf7x8c8e6DgG6ufspd3mKBtrrHPAdRW88wo1H8QcGm5uSeA==' 'sha512-Nd4jFt7IgBKdJahIIB8Tgm5tf5NOxnh92FRv0kvXZFYV7tlyD+VGNtpU92PUdFD/3G632xUPldK1v52GTYIYow=='; connect-src https:; frame-src blob:; worker-src 'none'; upgrade-insecure-requests">
+<title>Dokumen Online</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#09111c;color:#edf2f8}*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#14283a 0,#09111c 58%);padding:24px 16px 32px}.shell{width:min(1120px,100%);margin:0 auto}.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 2px 20px;border-bottom:1px solid #2a3b4c}.brand{font-size:clamp(18px,3vw,24px);font-weight:750;letter-spacing:.01em}.tag{color:#aab8c8;font-size:12px;letter-spacing:.12em;text-transform:uppercase}.panel{margin:22px 0 0;padding:18px;border:1px solid #304357;border-radius:18px;background:#111d2a;box-shadow:0 18px 55px #0005}.intro{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:14px}.heading{margin:0;font-size:20px;font-weight:700}.status{margin:0;color:#b9c6d5;font-size:14px;line-height:1.65}.status-error{color:#ffb3ad}.status-ok{color:#9be4bd}.actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.action{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 16px;border:1px solid #59748d;border-radius:10px;color:#f1f5fa;text-decoration:none;font-size:14px;font-weight:650}.action-primary{background:#20bd70;border-color:#20bd70;color:#071b13}.viewer{display:block;width:100%;height:min(78vh,1050px);min-height:560px;border:1px solid #34485c;border-radius:10px;background:#fff}.foot{padding:14px 4px 0;color:#8495a8;font-size:12px;line-height:1.6}@media(max-width:640px){body{padding:12px 10px 20px}.panel{padding:12px;border-radius:13px}.viewer{height:74vh;min-height:460px}.top{padding-bottom:14px}}
+</style>
+<script>
+(function(){'use strict';var host=String(location.hostname||'').toLowerCase().replace(/\.$/,''),labels=host.split('.'),known={auth:1,panel:1,order:1,shop:1,security:1,project:1,api:1,www:1,cs:1,dev:1,pt:1,cv:1,secure:1,parfum:1},local=host==='localhost'||host==='::1'||/^127(?:\.\d{1,3}){3}$/.test(host),base='';if(labels.length>2&&Object.prototype.hasOwnProperty.call(known,labels[0]))labels.shift();base=labels.join('.')||host;var apiOrigin='';if(local&&['http:','https:'].includes(location.protocol))apiOrigin=location.origin;else if(location.protocol==='https:'&&/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/.test(base))apiOrigin='https://api.'+base;window.__DIRAC_DOCUMENT_VIEW_API__=apiOrigin;var policy=document.createElement('meta');policy.httpEquiv='Content-Security-Policy';policy.content="default-src 'none'; base-uri 'none'; object-src 'none'; form-action 'none'; frame-ancestors 'none'; img-src 'self' data:; font-src 'self'; style-src 'sha512-Oz25wJfJbOw86QRGYRFaErjxHJz8BG7cfiiiZ2THWDGOn0n/Z2lJMB/suVBdTo0Sne/wPlxFdvWRoC2TrHcNtQ=='; script-src 'self' 'sha512-Nd4jFt7IgBKdJahIIB8Tgm5tf5NOxnh92FRv0kvXZFYV7tlyD+VGNtpU92PUdFD/3G632xUPldK1v52GTYIYow=='; connect-src "+(apiOrigin||"'none'")+"; frame-src blob:; worker-src 'none'; upgrade-insecure-requests";(document.head||document.documentElement).appendChild(policy);})();
+</script>
+</head>
+<body>
+<div class="shell">
+<header class="top"><div class="brand">Dokumen Online</div><div class="tag">Akses dokumen pribadi</div></header>
+<main class="panel">
+<div class="intro"><h1 class="heading">Pratinjau dokumen</h1><p id="documentStatus" class="status" role="status" aria-live="polite">Memeriksa tautan dokumen…</p></div>
+<div id="documentActions" class="actions" hidden><a id="openDocument" class="action action-primary" target="_blank" rel="noopener noreferrer">Buka PDF</a><a id="downloadDocument" class="action" download="dokumen.pdf">Unduh PDF</a></div>
+<iframe id="documentFrame" class="viewer" title="Pratinjau dokumen PDF" hidden></iframe>
+<p class="foot">Tautan ini bersifat pribadi dan hanya dapat digunakan selama masa berlakunya. Simpan salinan PDF jika dokumen diperlukan kembali.</p>
+</main>
+</div>
+<script>
+'use strict';
+(function(){
+  const status = document.getElementById('documentStatus');
+  const frame = document.getElementById('documentFrame');
+  const actions = document.getElementById('documentActions');
+  const openLink = document.getElementById('openDocument');
+  const downloadLink = document.getElementById('downloadDocument');
+  const apiOrigin = String(window.__DIRAC_DOCUMENT_VIEW_API__ || '');
+  let objectUrl = '';
+  function showError(message) {
+    status.className = 'status status-error';
+    status.textContent = message;
+  }
+  function tokenFromFragment() {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const tokens = params.getAll('share');
+    if (tokens.length !== 1 || params.toString() !== 'share=' + tokens[0] || !/^dsv1\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{1,174800}\.[A-Za-z0-9_-]{22}$/.test(tokens[0])) return '';
+    return tokens[0];
+  }
+  async function loadDocument() {
+    const token = tokenFromFragment();
+    if (!token || !apiOrigin) {
+      showError('Tautan dokumen tidak valid atau tidak dapat digunakan pada alamat ini.');
+      return;
+    }
+    status.className = 'status';
+    status.textContent = 'Memuat dan memeriksa dokumen…';
+    try {
+      const response = await fetch(apiOrigin + '/api/admin?action=admin_document_share_public', {
+        method: 'POST',
+        mode: 'cors',
+        credentials: 'omit',
+        cache: 'no-store',
+        redirect: 'error',
+        referrerPolicy: 'no-referrer',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/pdf' },
+        body: JSON.stringify({ token })
+      });
+      if (!response || response.status !== 200 || !String(response.headers.get('Content-Type') || '').toLowerCase().startsWith('application/pdf')) {
+        if (response && response.status === 429) throw new Error('Terlalu banyak permintaan. Coba kembali beberapa saat lagi.');
+        if (response && response.status === 503) throw new Error('Dokumen sementara tidak dapat dimuat. Coba kembali beberapa saat lagi.');
+        throw new Error('Tautan tidak valid, telah kedaluwarsa, atau dokumen tidak tersedia.');
+      }
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      if (bytes.length < 10 || bytes.length > 2097152 || bytes[0] !== 0x25 || bytes[1] !== 0x50
+          || bytes[2] !== 0x44 || bytes[3] !== 0x46 || bytes[4] !== 0x2d) {
+        throw new Error('Berkas yang diterima bukan PDF yang valid.');
+      }
+      const blob = new Blob([buffer], { type: 'application/pdf' });
+      objectUrl = URL.createObjectURL(blob);
+      frame.src = objectUrl;
+      frame.hidden = false;
+      openLink.href = objectUrl;
+      downloadLink.href = objectUrl;
+      actions.hidden = false;
+      status.className = 'status status-ok';
+      status.textContent = 'Dokumen berhasil dimuat. Integritas PDF telah diperiksa oleh server.';
+    } catch (error) {
+      showError(error && error.message ? error.message : 'Dokumen tidak dapat dimuat.');
+    }
+  }
+  window.addEventListener('pagehide', function(){ if (objectUrl) URL.revokeObjectURL(objectUrl); });
+  loadDocument();
+})();
+</script>
+</body>
+</html>
